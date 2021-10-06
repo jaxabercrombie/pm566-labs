@@ -102,3 +102,54 @@ mtsamples %>%
 ```
 
 Using bi-grams is not very informative, so let's try tri-grams.
+
+Now some phrases start ton show up, e.g., "tolerated the procedure," "prepped and draped."
+
+## Q5
+```{r imp-words4, cache = TRUE}
+bigrams <- mtsamples %>%
+  unnest_ngrams(output = bigram, input = transcription, n = 2) %>%
+  separate(bigram, into = c("w1", "w2"), sep = " ") %>%
+  filter((w1 == "history") | (w2 == "history"))
+
+bigrams %>%
+  filter(w1 == "history") %>%
+  select(w1, w2) %>%
+  count(w2, sort = TRUE)
+
+bigrams %>%
+  filter(w2 == "history") %>%
+  select(w1, w2) %>%
+  count(w1, sort = TRUE)
+```
+
+Since we are looking at indiividual words again, we want to treat them as single tokens
+single tokens. So let's remove the stopwords and numbers again!
+
+```{r history-stop}
+bigrams %>%
+  filter(w1 == "history") %>%
+  filter(!(w2 %in% stop_words$word) & !grepl("^[0-9]+$", w2)) %>%
+  count(w2, sort = TRUE) %>%
+  top_n(10) %>%
+  knitr::kable(caption = "Words after 'history'")
+
+bigrams %>%
+  filter(w2 == "history") %>%
+  filter(!(w1 %in% stop_words$word) & !grepl("^[0-9]+$", w1)) %>%
+  count(w1, sort = TRUE) %>%
+  top_n(10) %>%
+  knitr::kable(caption = "Words before 'history'")
+```
+
+
+##Q6
+```{r imp-words5, cache = TRUE}
+
+```
+
+##Q7
+```{r imp-words6, cache = TRUE}
+
+```
+
