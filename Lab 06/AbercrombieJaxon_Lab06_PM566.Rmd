@@ -34,14 +34,71 @@ specialties <-
 
 specialties %>%
   arrange(desc(n)) %>%
-  top_n(n, 15)
+  top_n(n, 15) %>%
+  knitr::kable()
 ```
 
 There are `r nrow(specialties)` specialties. Let's take a look at the distribution:
 
 ```{r dist}
+#Method 1 (not that pretty)
+mtsamples %>%
+  ggplot(aes(x = medical_specialty)) +
+  geom_histogram(stat = "count") +
+  coord_flip()
+
+#Method 2
+library(forcats)
+ggplot(specialties, aes(x = n, y = fct_reorder(medical_specialty, n))) +
+  geom_col()
+
+```
+
+```{r dist2}
 mtsamples %>%
   ggplot(aes(x = medical_specialty)) +
   geom_histogram(stat = "count") +
   coord_flip()
 ```
+
+These are not evenly (uniformly) distributed.
+
+## Q2
+```{r imp-words}
+library(tidytext)
+mtsamples %>%
+  unnest_tokens(output = word, input = transcription) %>%
+  count(word, sort = TRUE) %>%
+  # Using regular expressions to remove numbers
+  anti_join(stop_words, by = "word") %>%
+  filter(!grepl(pattern = "^[0-9]+$", x = word)) %>%
+  top_n(20) %>%
+  ggplot(aes(x = n, y = fct_reorder(word,n))) +
+    geom_col()
+```
+
+The word "patient" appears to be important (of course!), but we observe many stopwords.
+
+#Q3
+```{r imp-words2}
+mtsamples %>%
+  unnest_tokens(output = word, input = transcription) %>%
+  count(word, sort = TRUE) %>%
+  top_n(20) %>%
+  ggplot(aes(x = n, y = fct_reorder(word,n))) +
+    geom_col()
+```
+
+Looking better, but we do not like the numbers.
+
+#Q4
+```{r imp-words3, cache = TRUE}
+mtsamples %>%
+  unnest_ngrams(output = trigram, input = transcription, n = 3) %>%
+  count(trigram, sort = TRUE) %>%
+  top_n(20) %>%
+  ggplot(aes(x = n, y = fct_reorder(trigram,n))) +
+    geom_col()
+```
+
+Using bi-grams is not very informative, so let's try tri-grams.
