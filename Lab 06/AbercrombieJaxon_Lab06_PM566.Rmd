@@ -1,0 +1,47 @@
+---
+title: "Lab 06"
+author: "Jaxon Abercrombie"
+date: "10/6/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(tidytext)
+
+```
+
+## Download the Data
+```{r get-data}
+fn <- "mtsamples.csv"
+if (!file.exists(fn))
+  download.file("https://raw.githubusercontent.com/USCbiostats/data-science-data/master/00_mtsamples/mtsamples.csv", destfile = fn)
+
+library(tibble)
+
+mtsamples <- read.csv(fn)
+mtsamples <- as_tibble(mtsamples)
+mtsamples
+
+```
+
+## Q1: How many and how are specialties distributed?
+```{r dist-of-specialties}
+specialties <-
+  mtsamples %>%
+  count(medical_specialty)
+
+specialties %>%
+  arrange(desc(n)) %>%
+  top_n(n, 15)
+```
+
+There are `r nrow(specialties)` specialties. Let's take a look at the distribution:
+
+```{r dist}
+mtsamples %>%
+  ggplot(aes(x = medical_specialty)) +
+  geom_histogram(stat = "count") +
+  coord_flip()
+```
