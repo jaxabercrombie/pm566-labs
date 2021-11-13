@@ -1,0 +1,102 @@
+---
+title: "Lab 09"
+author: "Jaxon Abercrombie"
+date: "11/4/2021"
+output: md_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Problem 2
+```{r}
+library(microbenchmark)
+
+fun1 <- function(n = 100, k = 4, lambda = 4) {
+  x <- NULL
+  for (i in 1:n)
+    x <- rbind(x, rpois(k, lambda))
+
+  x
+}
+fun1alt <- function(n = 100, k = 4, lambda = 4) {
+  matrix(rpois(n * k, lambda), nrow = n, ncol = k, byrow = TRUE)
+}
+microbenchmark::microbenchmark(
+  fun1(n = 1000),
+  fun1alt(n = 1000), "relative"
+)
+```
+
+Problem 3
+```{r}
+set.seed(1234)
+x <- matrix(rnorm(1e4), nrow=10)
+fun2 <- function(x) {
+  apply(x, 2, max)
+}
+fun2alt <- function(x) {
+  idx <- max.col(t(x)) 
+  x[ cbind(idx, 1:ncol(x)) ]
+}
+
+all(fun2(x) == fun2alt(x))
+x <- matrix(rnorm(5e4), nrow=10)
+
+microbenchmark::microbenchmark(
+  fun2(x),
+  fun2alt(x), "relative"
+)
+
+
+
+set.seed(42343)
+M <- matrix(runif(12), ncol = 4)
+M
+fun2(M)
+t(M)
+idx <- max.col(t(M))
+idx
+
+cbind(idx, 1:ncol(M))
+
+M[cbind(idx, 1:ncol(M))]
+```
+
+Problem 4
+```{r}
+library(parallel)
+my_boot <- function(dat, stat, R, ncpus = 1L) {
+  
+  n <- nrow(dat)
+  idx <- matrix(sample.int(n, n*R, TRUE), nrow=n, ncol=R)
+  
+  cl <- makePSOCKcluster(ncpus)
+  
+  clusterSetRNGStream(cl, 123)
+  clusterExport(cl, c("stat", "dat", "idx"), envir = environment())
+  
+  ans <- parLapply(cl = cl, seq_len(R), function(i) {
+    stat(dat[idx[,i], , drop=FALSE])
+  })
+  
+  ans <- do.call(rbind, ans)
+  
+  stopCluster(cl)
+  
+  ans
+  
+}
+
+my_stat <- function(d) coef(lm(y ~ x, data=d))
+set.seed(1)
+n <- 500; R <- 5e3
+x <- cbind(rnorm(n)); y <- x*5 + rnorm(n)
+ans0 <- confint(lm(y~x))
+ans1 <- my_boot(dat = data.frame(x, y), my_stat, R = R, ncpus = 2L)
+t(apply(ans1, 2, quantile, c(.025,.975)))
+
+system.time(my_boot(dat = data.frame(x, y), my_stat, R = 4000, ncpus = 1L))
+system.time(my_boot(dat = data.frame(x, y), my_stat, R = 4000, ncpus = 2L))
+```
