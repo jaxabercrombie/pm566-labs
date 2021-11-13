@@ -1,0 +1,171 @@
+---
+title: "Lab 10"
+author: "Jaxon Abercrombie"
+date: "11/12/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Setup
+```{r}
+library(RSQLite)
+library(DBI)
+
+con <- dbConnect(SQLite(), ":memory:")
+
+actor <- read.csv("https://raw.githubusercontent.com/ivanceras/sakila/master/csv-sakila-db/actor.csv")
+rental <- read.csv("https://raw.githubusercontent.com/ivanceras/sakila/master/csv-sakila-db/rental.csv")
+customer <- read.csv("https://raw.githubusercontent.com/ivanceras/sakila/master/csv-sakila-db/customer.csv")
+payment <- read.csv("https://raw.githubusercontent.com/ivanceras/sakila/master/csv-sakila-db/payment_p2007_01.csv")
+
+dbWriteTable(con, "actor", actor)
+dbWriteTable(con, "rental", rental)
+dbWriteTable(con, "customer", customer)
+dbWriteTable(con, "payment", payment)
+
+dbListTables(con)
+```
+
+```{sql, connection=con, output.var="x1"}
+PRAGMA table_info(actor)
+```
+
+```{r}
+dbGetQuery(con, "PRAGMA table_info(actor)")
+```
+
+
+## Exercise 1
+```{r}
+dbGetQuery(con,"
+SELECT actor_id, first_name, last_name
+FROM actor
+ORDER by last_name, first_name
+LIMIT 5")
+```
+
+## Exercise 2
+```{r}
+dbGetQuery(con,"
+SELECT actor_id, first_name, last_name
+FROM actor
+WHERE last_name IN ('WILLIAMS', 'DAVIS')
+LIMIT 5")
+```
+
+```{r}
+dbGetQuery(con, "PRAGMA table_info(rental)")
+```
+
+## Exercise 3
+```{r}
+dbGetQuery(con,"
+SELECT DISTINCT customer_id, rental_date
+FROM rental
+WHERE date(rental_date) = '2005-07-05'
+LIMIT 5")
+```
+
+## Exercise 4
+
+```{r}
+dbGetQuery(con, "PRAGMA table_info(payment)")
+```
+
+## 4.1
+```{sql, connection=con}
+SELECT *
+FROM payment
+WHERE amount IN (1.99, 7.99, 9.99)
+LIMIT 10
+```
+
+## 4.2
+```{sql, connection=con}
+SELECT *
+FROM payment
+WHERE amount > 5.0
+LIMIT 10
+```
+
+## 4.3
+```{sql, connection=con}
+SELECT *
+FROM payment
+WHERE amount > 5.0 AND amount < 8.0
+LIMIT 10
+```
+
+
+## Exercise 5
+```{sql, connection=con}
+SELECT p.payment_id, p.amount
+FROM payment AS p
+  INNER JOIN customer AS c ON p.customer_id = c.customer_id
+WHERE c.last_name = 'DAVIS'
+LIMIT 10
+```
+
+## Exercise 6
+
+## 6.1
+```{sql, connection=con}
+SELECT COUNT(*)
+FROM rental
+```
+
+## 6.2
+```{sql, connection=con}
+SELECT customer_id, COUNT(*)
+FROM rental
+GROUP BY customer_id
+```
+
+## 6.3
+```{sql, connection=con}
+SELECT customer_id, COUNT(*)
+FROM rental
+GROUP BY customer_id
+ORDER BY COUNT(*) DESC
+```
+
+## 6.4
+```{sql, connection=con}
+SELECT customer_id, COUNT(*)
+FROM rental
+GROUP BY customer_id
+HAVING COUNT(*) >= 40
+ORDER BY COUNT(*) DESC
+```
+
+## Exercise 7
+
+## 7.1
+```{sql, connection=con}
+SELECT 
+  customer_id, 
+  MAX(amount) AS 'max',
+  MIN(amount) AS 'min',
+  AVG(amount) AS 'avg',
+  SUM(amount) AS 'sum'
+FROM payment
+GROUP BY customer_id
+LIMIT 5
+```
+
+## 7.2
+```{sql, connection=con}
+SELECT 
+  customer_id, 
+  COUNT(*) AS 'count',
+  MAX(amount) AS 'max',
+  MIN(amount) AS 'min',
+  AVG(amount) AS 'avg',
+  SUM(amount) AS 'sum'
+FROM payment
+GROUP BY customer_id
+HAVING count > 5
+```
